@@ -19,6 +19,7 @@ variables:
   databricks.cluster.workers.max: 2
   databricks.job.train.name: Train
   databricks.job.train.id:
+  version: v1
 
 stages:
 - stage: Build
@@ -40,28 +41,31 @@ stages:
       inputs:
         targetType: 'inline'
         script: 'pip install -U databricks-cli'
-    - task: Bash@3
-      displayName: 'Configure Databricks CLI'
-      inputs:
-        targetType: 'inline'
-        script: |
-          # We need to write the pipe the conf into databricks configure --token since
-          # that command only takes inputs from stdin. 
-          conf=`cat << EOM
-          $(databricks.host)
-          $(databricks.token)
-          EOM`
+    # - task: Bash@3
+    #   displayName: 'Configure Databricks CLI'
+    #   inputs:
+    #     targetType: 'inline'
+    #     script: |
+    #       # We need to write the pipe the conf into databricks configure --token since
+    #       # that command only takes inputs from stdin. 
+    #       conf=`cat << EOM
+    #       $(databricks.host)
+    #       $(databricks.token)
+    #       EOM`
           
-          # For password auth there are three lines expected
-          # hostname, username, password
-          echo "$conf" | databricks configure --token
-    - task: Bash@3
-      displayName: 'Create Notebook Path'
-      inputs:
-        targetType: 'inline'
-        script: 'databricks workspace mkdirs "$(databricks.notebook.path)"'
-    - task: Bash@3
-      displayName: 'Import Notebooks to Shared space'
-      inputs:
-        targetType: 'inline'
-        script: 'databricks workspace import_dir --overwrite notebooks "$(databricks.notebook.path)"'
+    #       # For password auth there are three lines expected
+    #       # hostname, username, password
+    #       echo "$conf" | databricks configure --token
+    # - task: Bash@3
+    #   displayName: 'Create Notebook Path'
+    #   inputs:
+    #     targetType: 'inline'
+    #     script: 'databricks workspace mkdirs "$(databricks.notebook.path)"'
+    # - task: Bash@3
+    #   displayName: 'Import Notebooks to Shared space'
+    #   inputs:
+    #     targetType: 'inline'
+    #     script: 'databricks workspace import_dir --overwrite notebooks "$(databricks.notebook.path)"'
+    - script: |
+        echo $(version) # outputs initialValue
+      displayName: First variable pass    
