@@ -1,0 +1,67 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+variables:
+  databricks.host: https://westeurope.azuredatabricks.net
+  databricks.notebook.path: /Shared/simple-model-versioning
+  databricks.cluster.name: small_73ML
+  databricks.cluster.id: 
+  databricks.cluster.spark_version: 7.3.x-cpu-ml-scala2.12
+  databricks.cluster.node_type_id: Standard_DS3_v2
+  databricks.cluster.driver_node_type_id: Standard_DS3_v2
+  databricks.cluster.autotermination_minutes: 20
+  databricks.cluster.workers.min: 1
+  databricks.cluster.workers.max: 2
+  databricks.job.train.name: Train
+  databricks.job.train.id:
+
+stages:
+- stage: Build
+  displayName: 'Train, Evaluate & Register Model'
+  jobs:
+  - job: Train
+    displayName: 'Train, Evaluate & Register Model'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: UsePythonVersion@0
+      displayName: 'Use Python 3.6'
+      inputs:
+        versionSpec: '3.6'
+        addToPath: true
+        architecture: 'x64'
+    - task: Bash@3
+      displayName: 'Install Databricks CLI'
+      inputs:
+        targetType: 'inline'
+        script: 'pip install -U databricks-cli'
+    - task: Bash@3
+      displayName: 'Configure Databricks CLI'
+      inputs:
+        targetType: 'inline'
+        script: |
+          # We need to write the pipe the conf into databricks configure --token since
+          # that command only takes inputs from stdin. 
+          conf=`cat << EOM
+          $(databricks.host)
+          $(databricks.token)
+          EOM`
+          
+          # For password auth there are three lines expected
+          # hostname, username, password
+          echo "$conf" | databricks configure --token
+    - task: Bash@3
+      displayName: 'Create Notebook Path'
+      inputs:
+        targetType: 'inline'
+        script: 'databricks workspace mkdirs "$(databricks.notebook.path)"'
+    - task: Bash@3
+      displayName: 'Import Notebooks to Shared space'
+      inputs:
+        targetType: 'inline'
+        script: 'databricks workspace import_dir --overwrite notebooks "$(databricks.notebook.path)"'
